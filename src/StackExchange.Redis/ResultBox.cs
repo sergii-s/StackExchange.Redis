@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,6 +25,139 @@ namespace StackExchange.Redis
         private static readonly Exception s_cancelled = new TaskCanceledException();
     }
 
+    internal sealed class MultyResultBox<T> : ResultBox
+    {
+        private static readonly MultyResultBox<T>[] store = new MultyResultBox<T>[64];
+        private object stateOrCompletionSource;
+        private int _usageCount;
+        private Dictionary<Message, T> values;
+        private int countNeeded;
+
+        public MultyResultBox(object stateOrCompletionSource, int count)
+        {
+            this.stateOrCompletionSource = stateOrCompletionSource;
+            _usageCount = 1;
+            values = new Dictionary<Message, T>();
+            countNeeded = count;
+        }
+
+        public static MultyResultBox<T> Get(object stateOrCompletionSource, int count)
+        {
+            MultyResultBox<T> found;
+            for (int i = 0; i < store.Length; i++)
+            {
+                if ((found = Interlocked.Exchange(ref store[i], null)) != null)
+                {
+                    found.Reset(stateOrCompletionSource, count);
+                    return found;
+                }
+            }
+
+            return new MultyResultBox<T>(stateOrCompletionSource, count);
+        }
+
+        public static void UnwrapAndRecycle(MultyResultBox<T> box, bool recycle, out Dictionary<Message, T> values, out Exception exception)
+        {
+            if (box == null)
+            {
+                values = default;
+                exception = null;
+            }
+            else
+            {
+                values = box.values;
+                exception = box._exception;
+                box.values = null;
+                box.countNeeded = 0;
+                box._exception = null;
+                if (recycle)
+                {
+                    var newCount = Interlocked.Decrement(ref box._usageCount);
+                    if (newCount != 0)
+                        throw new InvalidOperationException($"Result box count error: is {newCount} in UnwrapAndRecycle (should be 0)");
+
+                    // Clear state prior to recycling, so as not to root it
+                    box.stateOrCompletionSource = null;
+                    for (int i = 0; i < store.Length; i++)
+                    {
+                        if (Interlocked.CompareExchange(ref store[i], box, null) == null) return;
+                    }
+                }
+            }
+        }
+
+        public void SetResult(T value, Message message)
+        {
+            this.values[message] = value;
+        }
+
+        internal bool TrySetResult(T value, Message message)
+        {
+            if (_exception != null) return false;
+            this.values[message] = value;
+            return true;
+        }
+
+        public override bool IsAsync => stateOrCompletionSource is TaskCompletionSource<T>;
+
+        public override bool TryComplete(bool isAsync)
+        {
+            if (stateOrCompletionSource is TaskCompletionSource<T[]> tcs)
+            {
+                if (countNeeded != values.Count)
+                {
+                    //true or false?
+                    return true;
+                }
+                if (isAsync || (tcs.Task.CreationOptions & TaskCreationOptions.RunContinuationsAsynchronously) != 0)
+                {
+                    // either on the async completion step, or the task is guarded
+                    // againsts thread-stealing; complete it directly
+                    // (note: RunContinuationsAsynchronously is only usable from NET46)
+                    UnwrapAndRecycle(this, true, out Dictionary<Message, T> values, out Exception ex);
+
+                    if (ex == null)
+                    {
+                        tcs.TrySetResult(values.Values.ToArray());
+                    }
+                    else
+                    {
+                        if (ex is TaskCanceledException) tcs.TrySetCanceled();
+                        else tcs.TrySetException(ex);
+                        // mark it as observed
+                        GC.KeepAlive(tcs.Task.Exception);
+                        GC.SuppressFinalize(tcs.Task);
+                    }
+                    return true;
+                }
+                else
+                {
+                    // could be thread-stealing continuations; push to async to preserve the reader thread
+                    return false;
+                }
+            }
+            else
+            {
+                lock (this)
+                { // tell the waiting thread that we're done
+                    Monitor.PulseAll(this);
+                }
+                ConnectionMultiplexer.TraceWithoutContext("Pulsed", "Result");
+                return true;
+            }
+        }
+
+        private void Reset(object stateOrCompletionSource, int count)
+        {
+            var newCount = Interlocked.Increment(ref _usageCount);
+            if (newCount != 1) throw new InvalidOperationException($"Result box count error: is {newCount} in Reset (should be 1)");
+            values = new Dictionary<Message, T>();
+            countNeeded = count;
+            _exception = null;
+
+            this.stateOrCompletionSource = stateOrCompletionSource;
+        }
+    }
     internal sealed class ResultBox<T> : ResultBox
     {
         private static readonly ResultBox<T>[] store = new ResultBox<T>[64];

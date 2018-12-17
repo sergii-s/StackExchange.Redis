@@ -1454,7 +1454,7 @@ namespace StackExchange.Redis
 
                     int iterCount = first ? 2 : 1;
                     // this is fix for https://github.com/StackExchange/StackExchange.Redis/issues/300
-                    // auto discoverability of cluster nodes is made synchronous. 
+                    // auto discoverability of cluster nodes is made synchronous.
                     // we try to connect to endpoints specified inside the user provided configuration
                     // and when we encounter one such endpoint to which we are able to successfully connect,
                     // we get the list of cluster nodes from this endpoint and try to proactively connect
@@ -1544,7 +1544,7 @@ namespace StackExchange.Redis
 
                                     if (clusterCount > 0 && !encounteredConnectedClusterServer)
                                     {
-                                        // we have encountered a connected server with clustertype for the first time. 
+                                        // we have encountered a connected server with clustertype for the first time.
                                         // so we will get list of other nodes from this server using "CLUSTER NODES" command
                                         // and try to connect to these other nodes in the next iteration
                                         encounteredConnectedClusterServer = true;
@@ -1901,7 +1901,21 @@ namespace StackExchange.Redis
             return ServerSelectionStrategy.Select(command, key, flags);
         }
 
-        private WriteResult TryPushMessageToBridge<T>(Message message, ResultProcessor<T> processor, ResultBox<T> resultBox, ref ServerEndPoint server)
+        private (WriteResult result, Message message) TryPushMultipleMessageToBridge<T>(Message[] messages, ResultProcessor<T> processor, MultyResultBox<T> resultBox, ref ServerEndPoint server)
+        {
+            foreach (var message in messages)
+            {
+                var res = TryPushMessageToBridge(message, processor, resultBox, ref server);
+                if (res != WriteResult.Success)
+                {
+                    return (res, message);
+                }
+            }
+
+            return (WriteResult.Success, null);
+        }
+
+        private WriteResult TryPushMessageToBridge<T>(Message message, ResultProcessor<T> processor, ResultBox resultBox, ref ServerEndPoint server)
         {
             message.SetSource(processor, resultBox);
 
@@ -2127,6 +2141,29 @@ namespace StackExchange.Redis
                 return tcs.Task;
             }
         }
+
+        internal Task<T[]> ExecuteAsyncImpl<T>(Message[] messages, ResultProcessor<T> processor, object state, ServerEndPoint server)
+        {
+            if (_isDisposed) throw new ObjectDisposedException(ToString());
+
+            if (messages == null)
+            {
+                return CompletedTask<T[]>.Default(state);
+            }
+
+            var tcs = TaskSource.Create<T[]>(state);
+            var source = MultyResultBox<T>.Get(tcs, messages.Length);
+
+            var (result, errorMessage) = TryPushMultipleMessageToBridge(messages, processor, source, ref server);
+            if (result != WriteResult.Success)
+            {
+                var ex = GetException(result, errorMessage, server);
+                ThrowFailed(tcs, ex);
+            }
+
+            return tcs.Task;
+        }
+
         internal Exception GetException(WriteResult result, Message message, ServerEndPoint server)
         {
             switch (result)

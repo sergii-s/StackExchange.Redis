@@ -40,6 +40,17 @@ namespace StackExchange.Redis
 
         public void WaitAll(params Task[] tasks) => multiplexer.WaitAll(tasks);
 
+        internal virtual Task<T[]> ExecuteAsync<T>(Message[] messages, ResultProcessor<T> processor, ServerEndPoint server = null)
+        {
+            if (messages == null) return CompletedTask<T[]>.Default(asyncState);
+            foreach (var message in messages)
+            {
+                multiplexer.CheckMessage(message);
+            }
+
+            return multiplexer.ExecuteAsyncImpl<T>(messages, processor, asyncState, server);
+        }
+
         internal virtual Task<T> ExecuteAsync<T>(Message message, ResultProcessor<T> processor, ServerEndPoint server = null)
         {
             if (message == null) return CompletedTask<T>.Default(asyncState);

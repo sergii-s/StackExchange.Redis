@@ -250,7 +250,7 @@ namespace StackExchange.Redis
         Task<RedisValue[]> HashGetAsync(RedisKey key, RedisValue[] hashFields, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
-        /// Returns all fields and values of the hash stored at key. 
+        /// Returns all fields and values of the hash stored at key.
         /// </summary>
         /// <param name="key">The key of the hash to get all entries from.</param>
         /// <param name="flags">The flags to use for this operation.</param>
@@ -510,7 +510,7 @@ namespace StackExchange.Redis
         Task<RedisKey> KeyRandomAsync(CommandFlags flags = CommandFlags.None);
 
         /// <summary>
-        /// Renames key to newkey. It returns an error when the source and destination names are the same, or when key does not exist. 
+        /// Renames key to newkey. It returns an error when the source and destination names are the same, or when key does not exist.
         /// </summary>
         /// <param name="key">The key to rename.</param>
         /// <param name="newKey">The key to rename to.</param>
@@ -617,7 +617,7 @@ namespace StackExchange.Redis
         Task<long> ListLeftPushAsync(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
-        /// Returns the length of the list stored at key. If key does not exist, it is interpreted as an empty list and 0 is returned. 
+        /// Returns the length of the list stored at key. If key does not exist, it is interpreted as an empty list and 0 is returned.
         /// </summary>
         /// <param name="key">The key of the list.</param>
         /// <param name="flags">The flags to use for this operation.</param>
@@ -628,7 +628,7 @@ namespace StackExchange.Redis
         /// <summary>
         /// Returns the specified elements of the list stored at key. The offsets start and stop are zero-based indexes, with 0 being the first element of the list (the head of the list), 1 being the next element and so on.
         /// These offsets can also be negative numbers indicating offsets starting at the end of the list.For example, -1 is the last element of the list, -2 the penultimate, and so on.
-        /// Note that if you have a list of numbers from 0 to 100, LRANGE list 0 10 will return 11 elements, that is, the rightmost item is included. 
+        /// Note that if you have a list of numbers from 0 to 100, LRANGE list 0 10 will return 11 elements, that is, the rightmost item is included.
         /// </summary>
         /// <param name="key">The key of the list.</param>
         /// <param name="start">The start index of the list.</param>
@@ -684,7 +684,7 @@ namespace StackExchange.Redis
         Task<long> ListRightPushAsync(RedisKey key, RedisValue value, When when = When.Always, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
-        /// Insert all the specified values at the tail of the list stored at key. If key does not exist, it is created as empty list before performing the push operation. 
+        /// Insert all the specified values at the tail of the list stored at key. If key does not exist, it is created as empty list before performing the push operation.
         /// Elements are inserted one after the other to the tail of the list, from the leftmost element to the rightmost element. So for instance the command RPUSH mylist a b c will result into a list containing a as first element, b as second element and c as third element.
         /// </summary>
         /// <param name="key">The key of the list.</param>
@@ -1091,7 +1091,7 @@ namespace StackExchange.Redis
         Task<long> SortedSetAddAsync(RedisKey key, SortedSetEntry[] values, When when = When.Always, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
-        /// Computes a set operation over two sorted sets, and stores the result in destination, optionally performing 
+        /// Computes a set operation over two sorted sets, and stores the result in destination, optionally performing
         /// a specific aggregation (defaults to sum).
         /// </summary>
         /// <param name="operation">The operation to perform.</param>
@@ -1106,7 +1106,7 @@ namespace StackExchange.Redis
         Task<long> SortedSetCombineAndStoreAsync(SetOperation operation, RedisKey destination, RedisKey first, RedisKey second, Aggregate aggregate = Aggregate.Sum, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
-        /// Computes a set operation over multiple sorted sets (optionally using per-set weights), and stores the result in destination, optionally performing 
+        /// Computes a set operation over multiple sorted sets (optionally using per-set weights), and stores the result in destination, optionally performing
         /// a specific aggregation (defaults to sum).
         /// </summary>
         /// <param name="operation">The operation to perform.</param>
@@ -1458,7 +1458,7 @@ namespace StackExchange.Redis
         Task<StreamConsumerInfo[]> StreamConsumerInfoAsync(RedisKey key, RedisValue groupName, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
-        /// Create a consumer group for the given stream. 
+        /// Create a consumer group for the given stream.
         /// </summary>
         /// <param name="key">The key of the stream.</param>
         /// <param name="groupName">The name of the group to create.</param>
@@ -1721,6 +1721,14 @@ namespace StackExchange.Redis
         /// <returns>The value of key, or nil when key does not exist.</returns>
         /// <remarks>https://redis.io/commands/get</remarks>
         Task<RedisValue> StringGetAsync(RedisKey key, CommandFlags flags = CommandFlags.None);
+
+        /// <summary>
+        /// GFYS
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="flags"></param>
+        /// <returns></returns>
+        Task<RedisValue[]> PipelineStringGetAsync(RedisKey[] key, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
         /// Returns the values of all specified keys. For every key that does not hold a string value or does not exist, the special value nil is returned.

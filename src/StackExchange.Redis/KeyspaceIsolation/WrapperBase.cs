@@ -751,6 +751,11 @@ namespace StackExchange.Redis.KeyspaceIsolation
             return Inner.StringGetAsync(ToInner(key), flags);
         }
 
+        public Task<RedisValue[]> PipelineStringGetAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
+        {
+            return Inner.PipelineStringGetAsync(ToInner(keys), flags);
+        }
+
         public Task<Lease<byte>> StringGetLeaseAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
             return Inner.StringGetLeaseAsync(ToInner(key), flags);

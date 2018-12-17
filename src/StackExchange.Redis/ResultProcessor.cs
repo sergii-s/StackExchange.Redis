@@ -1996,10 +1996,20 @@ The coordinates as a two items x,y array (longitude,latitude).
         protected void SetResult(Message message, T value)
         {
             if (message == null) return;
-            var box = message.ResultBox as ResultBox<T>;
-            message.SetResponseReceived();
 
-            box?.SetResult(value);
+            message.SetResponseReceived();
+            if (message.ResultBox is ResultBox<T> box)
+            {
+                box?.SetResult(value);
+                return;
+            }
+
+            if (message.ResultBox is MultyResultBox<T> mbox)
+            {
+                mbox?.SetResult(value, message);
+                return;
+            }
+
         }
     }
 }

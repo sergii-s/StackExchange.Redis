@@ -2271,6 +2271,12 @@ namespace StackExchange.Redis
             return ExecuteAsync(msg, ResultProcessor.RedisValue);
         }
 
+        public Task<RedisValue[]> PipelineStringGetAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
+        {
+            var messages = keys.Select(x => Message.Create(Database, flags, RedisCommand.GET, x)).ToArray();
+            return ExecuteAsync(messages, ResultProcessor.RedisValue);
+        }
+
         public Task<Lease<byte>> StringGetLeaseAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
             var msg = Message.Create(Database, flags, RedisCommand.GET, key);
@@ -2617,7 +2623,7 @@ namespace StackExchange.Redis
              * [7] = id1
              * [8] = id2
              * [9] = id3
-             * 
+             *
              * */
 
             var pairCount = streamPositions.Length;
