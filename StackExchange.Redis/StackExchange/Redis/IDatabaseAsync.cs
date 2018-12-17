@@ -938,6 +938,14 @@ namespace StackExchange.Redis
         Task<RedisValue[]> StringGetAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None);
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="flags"></param>
+        /// <returns></returns>
+        Task<RedisValue[]> PipelineStringGetAsync(RedisKey[] key, CommandFlags flags = CommandFlags.None);
+        
+        /// <summary>
         /// Returns the bit value at offset in the string value stored at key.
         /// When offset is beyond the string length, the string is assumed to be a contiguous space with 0 bits.
         /// </summary>

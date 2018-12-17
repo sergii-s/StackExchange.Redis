@@ -1660,6 +1660,12 @@ namespace StackExchange.Redis
             var msg = Message.Create(Database, flags, RedisCommand.GET, key);
             return ExecuteAsync(msg, ResultProcessor.RedisValue);
         }
+        
+        public Task<RedisValue[]> PipelineStringGetAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
+        {
+            var messages = keys.Select(x => Message.Create(Database, flags, RedisCommand.GET, x)).ToArray();
+            return ExecuteAsync(messages, ResultProcessor.RedisValue);
+        }
 
         public Task<RedisValue[]> StringGetAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
         {

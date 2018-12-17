@@ -127,7 +127,9 @@ namespace StackExchange.Redis
 
                 var type = asm.GetType("Microsoft.WindowsAzure.ServiceRuntime.RoleEnvironment");
 
-                // https://msdn.microsoft.com/en-us/library/microsoft.windowsazure.serviceruntime.roleenvironment.isavailable.aspx                if (!(bool)type.GetProperty("IsAvailable").GetValue(null, null))                    return null;
+                // https://msdn.microsoft.com/en-us/library/microsoft.windowsazure.serviceruntime.roleenvironment.isavailable.aspx
+                if (!(bool)type.GetProperty("IsAvailable").GetValue(null, null))
+                    return null;
 
                 var currentRoleInstanceProp = type.GetProperty("CurrentRoleInstance");
                 var currentRoleInstanceId = currentRoleInstanceProp.GetValue(null, null);
@@ -1786,7 +1788,23 @@ namespace StackExchange.Redis
         {
             return serverSelectionStrategy.Select(db, command, key, flags);
         }
-        private bool TryPushMessageToBridge<T>(Message message, ResultProcessor<T> processor, ResultBox<T> resultBox, ref ServerEndPoint server)
+        
+        private bool TryPushMultipleMessageToBridge<T>(Message[] messages, ResultProcessor<T> processor, MultyResultBox<T> resultBox, ref ServerEndPoint server, out Message errorMessage)
+        {
+            errorMessage = null;
+            foreach (var message in messages)
+            {
+                if (!TryPushMessageToBridge(message, processor, resultBox, ref server))
+                {
+                    errorMessage = message;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        
+        private bool TryPushMessageToBridge<T>(Message message, ResultProcessor<T> processor, ResultBox resultBox, ref ServerEndPoint server)
         {
             message.SetSource(processor, resultBox);
 
@@ -1964,7 +1982,26 @@ namespace StackExchange.Redis
             Close(!isDisposed);
         }
 
-
+        internal Task<T[]> ExecuteAsyncImpl<T>(Message[] messages, ResultProcessor<T> processor, object state, ServerEndPoint server)
+        {
+            if (isDisposed) throw new ObjectDisposedException(ToString());
+ 
+            if (messages == null)
+            {
+                return CompletedTask<T[]>.Default(state);
+            }
+ 
+            var tcs = TaskSource.Create<T[]>(state);
+            var source = MultyResultBox<T>.Get(tcs, messages.Length);
+ 
+            if (!TryPushMultipleMessageToBridge(messages, processor, source, ref server, out var message))
+            {
+                ThrowFailed(tcs, ExceptionFactory.NoConnectionAvailable(IncludeDetailInExceptions, IncludePerformanceCountersInExceptions, message.Command, message, server, GetServerSnapshot()));
+            }
+ 
+            return tcs.Task;
+        }
+        
         internal Task<T> ExecuteAsyncImpl<T>(Message message, ResultProcessor<T> processor, object state, ServerEndPoint server)
         {
             if (isDisposed) throw new ObjectDisposedException(ToString());

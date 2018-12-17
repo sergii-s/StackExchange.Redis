@@ -2,13 +2,13 @@
 
   <PropertyGroup>
     <Description>StackExchange.Redis.BasicTest .NET Core</Description>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
-    <TargetFrameworks>$(TargetFramework)</TargetFrameworks>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>BasicTest</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>BasicTest</PackageId>
     <RuntimeIdentifiers>win7-x64</RuntimeIdentifiers>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

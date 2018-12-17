@@ -2,6 +2,9 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System;
+using System.ComponentModel;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 
 [assembly: AssemblyVersion("1.0.0")]
 
@@ -9,7 +12,7 @@ namespace BasicTest
 {
     static class Program
     {
-        static void Main()
+        static async Task Main()
         {
             using (var conn = ConnectionMultiplexer.Connect("127.0.0.1:6379"))
             {
@@ -24,8 +27,23 @@ namespace BasicTest
     redis.call('del', KEYS[1])
     return val", new RedisKey[] { key }, flags: CommandFlags.NoScriptCache);
 
-                Console.WriteLine(s);
-                Console.WriteLine(db.KeyExists(key));
+                db.StringSet("k1", "v1");
+                db.StringSet("k2", "v2");
+                db.StringSet("k3", "v3");
+                db.StringSet("k4", "v4");
+
+                
+
+                for (int i = 0; ; i++)
+                {
+                    var values = await db.PipelineStringGetAsync(new RedisKey[] {"k1", "k2", "k3", "k4"});
+                    Console.WriteLine(i + " " + String.Join(",", values));
+                    if (values.Length != 4)
+                    {
+                        throw new Exception();
+                    }    
+                }
+                
 
             }
         }

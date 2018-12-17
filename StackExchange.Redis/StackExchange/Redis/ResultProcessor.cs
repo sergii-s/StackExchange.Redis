@@ -1447,10 +1447,21 @@ The coordinates as a two items x,y array (longitude,latitude).
         protected void SetResult(Message message, T value)
         {
             if (message == null) return;
-            var box = message.ResultBox as ResultBox<T>;
+            
             message.SetResponseReceived();
+            if (message.ResultBox is ResultBox<T>)
+            {
+                var box = message.ResultBox as ResultBox<T>;
+                box?.SetResult(value);
+                return;
+            }
 
-            box?.SetResult(value);
+            if (message.ResultBox is MultyResultBox<T>)
+            {
+                var box = message.ResultBox as MultyResultBox<T>;
+                box?.SetResult(value, message);
+                return;
+            }
         }
     }
 }

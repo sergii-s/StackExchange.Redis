@@ -623,6 +623,11 @@ namespace StackExchange.Redis.KeyspaceIsolation
         {
             return Inner.StringGetSetAsync(ToInner(key), value, flags);
         }
+        
+        public Task<RedisValue[]> PipelineStringGetAsync(RedisKey[] key, CommandFlags flags = CommandFlags.None)
+        {
+            return Inner.PipelineStringGetAsync(ToInner(key), flags);
+        }
 
         public Task<RedisValueWithExpiry> StringGetWithExpiryAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
